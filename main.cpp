@@ -5,11 +5,10 @@
 
 using namespace cv;
 
-static int x_offset(0), y_offset(0), w1(250), w2(250), h(250);
-static size_t frames(0);
+static int x_offset(490), y_offset(0), w1(855), w2(220), h(175);
 
 int main() {
-    VideoCapture cap(0);
+    VideoCapture cap("../solidWhiteRight.mp4");
 
     Mat frame, res, transform;
 
@@ -20,8 +19,8 @@ int main() {
     namedWindow("Main", WINDOW_AUTOSIZE);
     createTrackbar("x offset", "Main", &x_offset, frame.size[1]);
     createTrackbar("y offset", "Main", &y_offset, frame.size[0]);
-    createTrackbar("down width", "Main", &w2, frame.size[1]);
-    createTrackbar("up width", "Main", &w1, frame.size[1]);
+    createTrackbar("down width", "Main", &w1, frame.size[1]);
+    createTrackbar("up width", "Main", &w2, frame.size[1]);
     createTrackbar("height", "Main", &h, frame.size[0]);
 
     namedWindow("Result", WINDOW_AUTOSIZE);
@@ -35,19 +34,20 @@ int main() {
     persp_dst.push_back(Point2f(0, frame.size[0]));
     while(true) {
         cap >> frame;
-        frames++;
 
-        if(frame.empty())
+        if(frame.empty()) {
+            cap.set(CAP_PROP_POS_FRAMES, 0);
             continue;
+        }
 
         frame.copyTo(res);
 
         pol.clear();
         pols.clear();
-        pol.push_back(Point(x_offset, y_offset));
-        pol.push_back(Point(x_offset + w1, y_offset));
-        pol.push_back(Point(x_offset + (w1 + w2) / 2, y_offset + h));
-        pol.push_back(Point(x_offset + (w1 - w2) / 2, y_offset + h));
+        pol.push_back(Point(x_offset - w1 / 2, frame.size[0] - y_offset));
+        pol.push_back(Point(x_offset + w1 / 2, frame.size[0] - y_offset));
+        pol.push_back(Point(x_offset + w2 / 2, frame.size[0] - y_offset - h));
+        pol.push_back(Point(x_offset - w2 / 2, frame.size[0] - y_offset - h));
         pols.push_back(pol);
         polylines(frame, pols, true, Scalar(0, 255, 0), 2);
 
@@ -61,8 +61,16 @@ int main() {
 
         putText(
             frame,
-            format("Frame: %ld", frames),
+            format("Frame:        %5.0f", cap.get(CAP_PROP_POS_FRAMES)),
             Point(10, 50),
+            FONT_HERSHEY_TRIPLEX,
+            0.75,
+            Scalar(0, 255, 0));
+
+        putText(
+            frame,
+            format("Frames total: %5.0f", cap.get(CAP_PROP_FRAME_COUNT)),
+            Point(10, 75),
             FONT_HERSHEY_TRIPLEX,
             0.75,
             Scalar(0, 255, 0));
@@ -70,10 +78,10 @@ int main() {
         imshow("Main", frame);
 
         persp_src.clear();
-        persp_src.push_back(Point2f(x_offset, y_offset));
-        persp_src.push_back(Point2f(x_offset + w1, y_offset));
-        persp_src.push_back(Point2f(x_offset + (w1 + w2) / 2, y_offset + h));
-        persp_src.push_back(Point2f(x_offset + (w1 - w2) / 2, y_offset + h));
+        persp_src.push_back(Point2f(x_offset - w1 / 2, frame.size[0] - y_offset));
+        persp_src.push_back(Point2f(x_offset + w1 / 2, frame.size[0] - y_offset));
+        persp_src.push_back(Point2f(x_offset + w2 / 2, frame.size[0] - y_offset - h));
+        persp_src.push_back(Point2f(x_offset - w2 / 2, frame.size[0] - y_offset - h));
         transform = getPerspectiveTransform(persp_src, persp_dst);
         warpPerspective(res, res, transform, { res.size[1], res.size[0] });
 
